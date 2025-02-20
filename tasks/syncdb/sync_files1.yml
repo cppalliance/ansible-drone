@@ -1,0 +1,62 @@
+---
+- name: Copy backup file to tmp folder 1
+  ansible.builtin.copy:
+    src: "/var/lib/drone"
+    dest: "/tmp/ansible_tmp_1"
+    owner: "ubuntu"
+    group: "ubuntu"
+    mode: '0755'
+    remote_src: true
+
+- name: Transfering files 1
+  become: false
+  ansible.posix.synchronize:
+    src: "/tmp/ansible_tmp_1/drone"
+    dest: "/tmp/ansible_tmp_1"
+    mode: pull
+  delegate_to: "{{ item }}"
+  vars:
+    ansible_ssh_extra_args: '-A'
+  with_items: "{{ groups['drone-servers'] }}"
+
+- name: Cleanup backup file from source
+  ansible.builtin.file:
+    path: "/tmp/ansible_tmp_1"
+    state: absent
+
+- name: Copy backup file to tmp folder 2
+  ansible.builtin.copy:
+    src: "/root/scripts"
+    dest: "/tmp/ansible_tmp_2"
+    owner: "ubuntu"
+    group: "ubuntu"
+    mode: '0755'
+    remote_src: true
+
+- name: Transfering files 2
+  become: false
+  ansible.posix.synchronize:
+    src: "/tmp/ansible_tmp_2/scripts"
+    dest: "/tmp/ansible_tmp_2"
+    mode: pull
+  delegate_to: "{{ item }}"
+  vars:
+    ansible_ssh_extra_args: '-A'
+  with_items: "{{ groups['drone-servers'] }}"
+
+- name: Cleanup backup file from source
+  ansible.builtin.file:
+    path: "/tmp/ansible_tmp_2"
+    state: absent
+
+
+# - name: Transfer root scripts
+#   become: true
+#   ansible.posix.synchronize:
+#     src: "/root/root_scripts/"
+#     dest: "/root/scripts/"
+#     mode: pull
+#   delegate_to: "{{ item }}"
+#   vars:
+#     ansible_ssh_extra_args: '-A'
+#   with_items: "{{ groups['drone-servers'] }}"

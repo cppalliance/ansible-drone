@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -xe
+
+# psql -U username -d mydatabase -c 'SELECT * FROM mytable'
+
+psql -c "update stages set stage_status='killed' where stage_id in (select stage_id from stages s join builds b on s.stage_build_id = b.build_id where b.build_status not in ('running') and s.stage_status='pending');"

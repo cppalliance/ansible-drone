@@ -1,0 +1,60 @@
+---
+- name: Drone Servers
+  hosts: drone-servers
+  remote_user: ubuntu
+  become: true
+  roles:
+    - {role: 'cppalliance.drone'}
+
+- name: DBsync playbook destdb_step1
+  hosts: drone-servers
+  remote_user: ubuntu
+  vars:
+    ansible_ssh_extra_args: '-A'
+  tasks:
+    - name: Create dest folder
+      ansible.builtin.include_role:
+        name: cppalliance.drone
+        tasks_from: syncdb/destdb_step1.yml
+
+- name: DBsync playbook sourcedb_step1
+  hosts: drone-original
+  become: true
+  remote_user: ubuntu
+  tasks:
+    - name: Backup DB
+      ansible.builtin.include_role:
+        name: cppalliance.drone
+        tasks_from: syncdb/sourcedb_step1.yml
+
+- name: DBsync playbook destdb_step2
+  hosts: drone-servers
+  become: true
+  remote_user: ubuntu
+  vars:
+    ansible_ssh_extra_args: '-A'
+  tasks:
+    - name: Restore DB
+      ansible.builtin.include_role:
+        name: cppalliance.drone
+        tasks_from: syncdb/destdb_step2.yml
+
+- name: File transfers, on source
+  hosts: drone-original
+  become: true
+  remote_user: ubuntu
+  tasks:
+    - name: File transfer on src
+      ansible.builtin.include_role:
+        name: cppalliance.drone
+        tasks_from: syncdb/sync_files1.yml
+
+- name: File transfers, on dest
+  hosts: drone-servers
+  become: true
+  remote_user: ubuntu
+  tasks:
+    - name: File transfer on dst
+      ansible.builtin.include_role:
+        name: cppalliance.drone
+        tasks_from: syncdb/sync_files2.yml

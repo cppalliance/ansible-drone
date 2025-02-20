@@ -1,0 +1,23 @@
+---
+
+# Only for testing
+
+- name: File transfers, on source
+  hosts: drone-original
+  become: true
+  remote_user: ubuntu
+  tasks:
+    - name: File transfer on src
+      ansible.builtin.include_role:
+        name: cppalliance.drone
+        tasks_from: syncdb/sync_files1.yml
+
+- name: File transfers, on dest
+  hosts: drone-servers
+  become: true
+  remote_user: ubuntu
+  tasks:
+    - name: File transfer on dst
+      ansible.builtin.include_role:
+        name: cppalliance.drone
+        tasks_from: syncdb/sync_files2.yml

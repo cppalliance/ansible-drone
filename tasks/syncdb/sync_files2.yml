@@ -1,0 +1,30 @@
+---
+- name: Copy tmp files to dest 1
+  become: true
+  ansible.builtin.copy:
+    src: "/tmp/ansible_tmp_1/drone"
+    dest: "/var/lib"
+    owner: "root"
+    group: "root"
+    mode: "0755"
+    remote_src: true
+
+- name: Cleanup backup file from dest 1
+  ansible.builtin.file:
+    path: "/tmp/ansible_tmp_1"
+    state: absent
+
+- name: Copy tmp files to dest 2
+  become: true
+  ansible.builtin.copy:
+    src: "/tmp/ansible_tmp_2/scripts"
+    dest: "/root/"
+    owner: "root"
+    group: "root"
+    mode: "0755"
+    remote_src: true
+
+- name: Cleanup backup file from dest 2
+  ansible.builtin.file:
+    path: "/tmp/ansible_tmp_2"
+    state: absent

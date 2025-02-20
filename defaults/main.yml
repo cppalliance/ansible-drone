@@ -1,0 +1,91 @@
+---
+drone_db_admin_user: postgres
+drone_db_admin_group: postgres
+drone_db_admin_user_homedir: /var/lib/postgresql
+drone_user: drone1
+drone_user_password: to_set
+
+drone_postgresql_version: 16
+drone_postgresql_config_dir: "/etc/postgresql/{{ drone_postgresql_version }}"
+
+drone_postgresql_backups_upload_to_bucket: !!str "yes"
+drone_postgresql_backups_bucket: to_set
+drone_postgresql_backups_weekly_bucket: to_set
+drone_postgresql_backups_s3_cmd: "/usr/local/bin/aws s3"
+
+drone_postgresql_backups_aws_id: to_set
+drone_postgresql_backups_aws_key: to_set
+drone_postgresql_backups_aws_region: to_set
+
+drone_packages:
+  - acl
+  - docker.io
+  - htop
+  - jq
+  - locate
+  - net-tools
+  - nload
+  - postgresql-{{ drone_postgresql_version }}
+  - python3-psycopg2
+  - tree
+  - unzip
+
+drone_database_list:
+  - name: drone1
+    username: drone1
+    password: to_set
+    subnet: "0.0.0.0/0"
+
+drone_scripts_dir: /opt/drone/scripts
+drone_default_ipv4: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+drone_github_client_id: to_set
+drone_github_client_secret: to_set
+drone_rpc_secret: to_set
+drone_server_host: to_set
+drone_convert_plugin_endpoint: "http://{{ drone_default_ipv4 }}:3000"
+drone_convert_plugin_secret: to_set
+drone_s3_bucket: to_set
+drone_aws_access_key_id: to_set
+drone_aws_secret_access_key: to_set
+drone_aws_default_region: to_set
+drone_aws_region: to_set
+drone_user_create: to_set
+drone_repository_filter: to_set
+drone_github_scope: to_set
+drone_limit_mem: to_set
+drone_docker_image: to_set
+
+drone_autoscaler_server_token: to_set
+drone_autoscaler_amazon_region: to_set
+drone_autoscaler_amazon_subnet_id: to_set
+drone_autoscaler_amazon_security_group: to_set
+drone_autoscaler_x86_amazon_image: to_set
+drone_autoscaler_aws_access_key_id: to_set
+drone_autoscaler_aws_secret_access_key: to_set
+drone_autoscaler_x86_amazon_instance: to_set
+drone_autoscaler_amazon_volume_type: to_set
+drone_autoscaler_amazon_volume_size: to-set
+
+drone_autoscaler_arm_amazon_image: to_set
+drone_autoscaler_arm_amazon_instance: to_set
+
+drone_dbsync_backup_script: "/var/lib/postgresql/scripts/postgresbackup.sh"
+drone_dbsync_source_backups_dir: "/var/lib/postgresql/backups/postgres"
+drone_dbsync_source_tmp_dir: "/tmp/drone_dbsync"
+drone_dbsync_dest_tmp_dir: "/tmp/drone_dbsync"
+drone_dbsync_backup_user: postgres
+drone_dbsync_backup_group: postgres
+drone_dbsync_execute_backup: true
+
+drone_dbsync_backups_create_backups_scripts: false
+drone_dbsync_backups_script_template: "postgresbackup.sh.j2"
+drone_dbsync_backups_cleanup_script_template: "cleanup.sh.j2"
+drone_dbsync_backups_psql: "/usr/lib/postgresql/{{ drone_postgresql_version }}/bin/psql"
+drone_dbsync_backups_pgdump: "/usr/lib/postgresql/{{ drone_postgresql_version }}/bin/pg_dump"
+
+# Custom post-import updates
+drone_dbsync_post_restore_update_db: false
+
+drone_dbsync_sourcedb: "postgres"
+drone_dbsync_destdb: "postgres"
+drone_dbsync_destdb_role: "drone1"

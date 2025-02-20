@@ -1,0 +1,52 @@
+#!/bin/sh
+# -*- sh -*-
+
+# shellcheck disable=SC2046
+
+: << =cut
+
+=head1 NAME
+
+cpu - Plugin to measure drone.io autoscaler server count.
+
+=head1 NOTES
+
+This plugin reads /tmp/servercount.txt once per interval, depending on external logic to generate that file.
+
+Create a script such as /opt/drone/scripts/servercount.sh:
+
+#!/bin/bash
+/usr/bin/docker logs --tail 3000 autoscaler 2>&1 | grep server-count | tail -n 1 | /usr/bin/jq '.["server-count"]' > /tmp/servercount.txt
+
+Run that script from privileged crontab:
+
+* * * * * /opt/drone/scripts/servercount.sh
+
+=head1 LICENSE
+
+Boost Version 1
+
+=head1 MAGIC MARKERS
+
+ #%# family=auto
+ #%# capabilities=autoconf
+
+=cut
+
+autoscaler="{{ item }}"
+
+if [ "$1" = "config" ]; then
+        echo "graph_title Drone Autoscaler $autoscaler"
+        echo "graph_order count"
+        #echo "graph_args --base 1000 -r --lower-limit 0 --upper-limit $graphlimit"
+        echo 'graph_scale no'
+        echo 'graph_vlabel Number'
+        echo 'graph_category system'
+        echo 'count.label count'
+        echo 'count.draw AREA'
+        echo 'count.min 0'
+        echo "count.info Number of server instances running"
+        exit 0
+fi
+
+echo "count.value" $(/usr/bin/cat /opt/munin/$autoscaler)

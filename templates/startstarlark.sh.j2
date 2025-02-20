@@ -1,0 +1,10 @@
+#!/bin/bash
+
+docker run -d \
+  --volume=/var/lib/starlark:/data \
+  --env=DRONE_STARLARK_REPO_PATHS=boost_ci:/data/boost-ci,url:/data/url,ci_automation:/data/ci-automation \
+  --publish=3000:3000 \
+  --env=DRONE_DEBUG=true \
+  --env=DRONE_SECRET={{ drone_convert_plugin_secret }} \
+  --restart=unless-stopped \
+  --name=starlark drone/drone-convert-starlark

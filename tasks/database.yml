@@ -1,0 +1,137 @@
+---
+# Uses 'postgres' database.
+# Thus some of these sections are overkill, since another db is not actually used.
+
+- name: Ensure postgresql is running and starts on boot
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Configure postgresql.conf
+  ansible.builtin.lineinfile:
+    dest: "{{ drone_postgresql_config_dir }}/main/postgresql.conf"
+    line: "listen_addresses = '*'"
+    mode: '0755'
+    state: present
+    create: true
+  notify:
+    - Restart postgresql
+
+- name: Install multiple databases
+  with_items: "{{ drone_database_list }}"
+  become: true
+  become_user: postgres
+  vars:
+    ansible_ssh_pipelining: true
+  community.postgresql.postgresql_db:
+    name: "{{ item.name }}"
+    encoding: 'UTF-8'
+    lc_collate: 'en_US.UTF-8'
+    lc_ctype: 'en_US.UTF-8'
+    template: 'template0'
+    state: present
+
+- name: Install multiple database users
+  with_items: "{{ drone_database_list }}"
+  become: true
+  become_user: postgres
+  vars:
+    ansible_ssh_pipelining: true
+  community.postgresql.postgresql_user:
+    db: "{{ item.name }}"
+    name: "{{ item.username }}"
+    password: "{{ item.password }}"
+    state: present
+
+- name: Configure pg_hba 1
+  ansible.builtin.lineinfile:
+    dest: "{{ drone_postgresql_config_dir }}/main/pg_hba.conf"
+    line: "host    all             all             0.0.0.0/0               md5"
+    mode: '0755'
+    state: present
+    create: true
+  notify:
+    - Restart postgresql
+
+- name: Configure pg_hba 2
+  ansible.builtin.lineinfile:
+    dest: "{{ drone_postgresql_config_dir }}/main/pg_hba.conf"
+    line: "host    all             all             ::/0                    md5"
+    mode: '0755'
+    state: present
+    create: true
+  notify:
+    - Restart postgresql
+
+
+- name: Create directories for db admin user
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ drone_db_admin_user }}"
+    group: "{{ drone_db_admin_group }}"
+    mode: '0755'
+    state: directory
+  loop:
+    - "{{ drone_db_admin_user_homedir }}/scripts"
+    - "{{ drone_db_admin_user_homedir }}/.aws"
+
+- name: Install db admin user scripts
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ drone_db_admin_user_homedir }}/scripts/{{ item }}"
+    owner: "{{ drone_db_admin_user }}"
+    group: "{{ drone_db_admin_group }}"
+    mode: "0755"
+  loop:
+    - drone-db-tasks.sh
+    - cleanup.sh
+    - postgresbackup.sh
+
+- name: Install db admin user scripts, 2
+  ansible.builtin.template:
+    src: "postgres-aws-{{ item }}.j2"
+    dest: "{{ drone_db_admin_user_homedir }}/.aws/{{ item }}"
+    owner: "{{ drone_db_admin_user }}"
+    group: "{{ drone_db_admin_group }}"
+    mode: "0755"
+  loop:
+    - config
+    - credentials
+
+- name: Cron job to run drone-db-tasks
+  ansible.builtin.cron:
+    name: Run drone-db-tasks.sh
+    minute: "15"
+    hour: "*"
+    day: "*"
+    job: "{{ drone_db_admin_user_homedir }}/scripts/drone-db-tasks.sh > /tmp/drone-db-tasks.txt 2>&1"
+    user: "{{ drone_db_admin_user }}"
+
+- name: Cron job to run postgresbackup.sh
+  ansible.builtin.cron:
+    name: Run postgresbackup.sh
+    minute: "0"
+    hour: "8"
+    day: "*"
+    job: "{{ drone_db_admin_user_homedir }}/scripts/postgresbackup.sh > /tmp/postgresbackup.txt 2>&1"
+    user: "{{ drone_db_admin_user }}"
+
+- name: Cron job to run cleanup.sh
+  ansible.builtin.cron:
+    name: Run cleanup.sh
+    minute: "0"
+    hour: "9"
+    day: "*"
+    job: "{{ drone_db_admin_user_homedir }}/scripts/cleanup.sh > /tmp/cleanup.txt 2>&1"
+    user: "{{ drone_db_admin_user }}"
+
+- name: Create a scripts directory for root
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: '0755'
+    state: directory
+  loop:
+    - /root/scripts

@@ -1,0 +1,9 @@
+---
+- name: Create tmp directory on dest
+  become: true
+  ansible.builtin.file:
+    path: "{{ drone_dbsync_dest_tmp_dir }}"
+    owner: "root"
+    group: "root"
+    mode: "0777"
+    state: directory

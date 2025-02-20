@@ -1,0 +1,6 @@
+#!/bin/bash
+
+dest=$HOME/backups/postgres/
+find $dest -type f -mtime +3 -exec rm {} \;
+# for dirs
+# for i in `find $dest -maxdepth 1 -type d -mtime +120 -print`; do echo -e "Deleting directory $i";rm -rf $i; done

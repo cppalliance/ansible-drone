@@ -1,0 +1,101 @@
+---
+- name: Install required packages
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+    update_cache: true
+  loop:
+    - acl
+
+# This is running 'in production', and all scripts are already in place,
+# or will already be created, in this case.
+#
+# - name: Generate backup script
+#   ansible.builtin.template:
+#     src: "{{ drone_dbsync_backups_script_template }}"
+#     dest: "{{ drone_dbsync_backup_script }}"
+#     owner: "{{ drone_dbsync_backup_user }}"
+#     group: "{{ drone_dbsync_backup_group }}"
+#     mode: '0755'
+#   when: drone_dbsync_backups_create_backups_scripts
+#
+# - name: Generate cleanup script
+#   ansible.builtin.template:
+#     src: "{{ drone_dbsync_backups_cleanup_script_template }}"
+#     dest: "{{ drone_dbsync_backup_script | dirname }}/cleanup.sh"
+#     owner: "{{ drone_dbsync_backup_user }}"
+#     group: "{{ drone_dbsync_backup_group }}"
+#     mode: '0755'
+#   when: drone_dbsync_backups_create_backups_scripts
+
+- name: Run backup script
+  become: true
+  become_user: "{{ drone_dbsync_backup_user }}"
+  ansible.builtin.shell: |
+      {{ drone_dbsync_backup_script }} {{ drone_dbsync_sourcedb }}
+  args:
+    executable: /bin/bash
+  changed_when: false
+  when: drone_dbsync_execute_backup
+
+- name: Determine db backup filename
+  ansible.builtin.shell: |
+      set -o pipefail
+      ls -1tr | grep "{{ drone_dbsync_sourcedb }}\..*\.dump$" | tail -1
+  args:
+    chdir: "{{ drone_dbsync_source_backups_dir }}"
+    executable: /bin/bash
+  register: command_output
+  changed_when: false
+
+- name: Store name of backup file in a variable
+  ansible.builtin.set_fact:
+    drone_dbsync_backupfilename: "{{ command_output.stdout | trim }}"
+
+- name: Print backup file name
+  ansible.builtin.debug:
+    var: drone_dbsync_backupfilename
+
+- name: Creates tmp directory on source
+  become: true
+  ansible.builtin.file:
+    path: "{{ drone_dbsync_source_tmp_dir }}"
+    owner: "root"
+    group: "root"
+    mode: "0777"
+    state: directory
+
+- name: Copy backup file to tmp folder
+  ansible.builtin.copy:
+    src: "{{ drone_dbsync_source_backups_dir }}/{{ drone_dbsync_backupfilename }}"
+    dest: "{{ drone_dbsync_source_tmp_dir }}/{{ drone_dbsync_backupfilename }}"
+    owner: "root"
+    group: "root"
+    mode: "0777"
+    remote_src: true
+
+- name: Transfer backup file to destination
+  become: false
+  ansible.posix.synchronize:
+    src: "{{ drone_dbsync_source_tmp_dir }}/{{ drone_dbsync_backupfilename }}"
+    dest: "{{ drone_dbsync_dest_tmp_dir }}/{{ drone_dbsync_backupfilename }}"
+    mode: pull
+  delegate_to: "{{ item }}"
+  vars:
+    ansible_ssh_extra_args: '-A'
+  with_items: "{{ groups['drone-servers'] }}"
+
+- name: Set backup file name on destination
+  become: false
+  ansible.builtin.set_fact:
+    drone_dbsync_backupfilename: "{{ drone_dbsync_backupfilename }}"
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  vars:
+    ansible_ssh_extra_args: '-A'
+  with_items: "{{ groups['drone-servers'] }}"
+
+- name: Cleanup backup file from source
+  ansible.builtin.file:
+    path: "{{ drone_dbsync_source_tmp_dir }}/{{ drone_dbsync_backupfilename }}"
+    state: absent

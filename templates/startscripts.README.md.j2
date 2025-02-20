@@ -1,0 +1,16 @@
+
+## Drone Start Scripts
+
+Run each of these, to start the corresponding component. Check that a docker container is running.  
+
+startdrone.sh  
+startstarlark.sh  
+startautoscaler-aws-arm.sh  
+startautoscaler-aws-x86.sh  
+
+To stop each service, manually stop and also remove the docker container.  
+
+Some experimental progress was made with autoscalers on GCP and Hetzner in 2023.  
+- GCP was blocked due to quota limits.  
+- There were problems with Hetzner due to very very slow deployments. AMIs were not quick-start.  
+It's possible to revisit those autoscalers in the future. Contact the author of this README for more details, if interested.  

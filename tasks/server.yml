@@ -1,0 +1,138 @@
+---
+- name: Install required packages
+  ansible.builtin.package:
+    name: "{{ drone_packages }}"
+    state: present
+    update_cache: true
+
+- name: Create multiple required directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "{{ drone_scripts_dir }}"
+    - /var/lib/drone
+    - /var/lib/starlark
+    - /var/lib/autoscaler
+    - /var/lib/autoscaler-arm
+    - /tmp/ansible-scripts
+    - /etc/munin
+    - /etc/munin/plugins
+
+- name: Clone starlark ci-automation
+  ansible.builtin.git:
+    repo: https://github.com/cppalliance/ci-automation
+    dest: /var/lib/starlark/ci-automation
+    version: master
+
+- name: Clone boost-ci ci-automation
+  ansible.builtin.git:
+    repo: https://github.com/boostorg/boost-ci
+    dest: /var/lib/starlark/boost-ci
+    version: master
+
+- name: Create start scripts for drone
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ drone_scripts_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+    force: false
+  loop:
+    - startdrone.sh
+    - startautoscaler-aws-arm.sh
+    - startautoscaler-aws-x86.sh
+    - startstarlark.sh
+
+- name: Create scripts, 2
+  ansible.builtin.copy:
+    src: "files/{{ item }}"
+    dest: "{{ drone_scripts_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+    force: false
+  loop:
+    - servercount.sh
+    - servercountv2.sh
+
+- name: Create files for drone
+  ansible.builtin.copy:
+    src: "files/{{ item }}"
+    dest: "{{ drone_scripts_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+    force: false
+  loop:
+    - init-aws-arm.yml
+    - init-aws-x86.yml
+    - init.experiment3.yml
+    - init.orig.from.website.yml
+
+- name: Create start scripts README file
+  ansible.builtin.template:
+    src: "startscripts.README.md.j2"
+    dest: "{{ drone_scripts_dir }}/README.md"
+    owner: root
+    group: root
+    mode: "0755"
+    force: false
+
+- name: Create drone OS user. Not generally used.
+  ansible.builtin.user:
+    name: "{{ drone_user }}"
+    create_home: true
+
+- name: Install script install-drone-cli.sh
+  ansible.builtin.copy:
+    src: files/install-drone-cli.sh
+    dest: "/tmp/ansible-scripts/install-drone-cli.sh"
+    mode: "0755"
+
+- name: Run install-drone-cli.sh
+  ansible.builtin.command:
+    cmd: "/tmp/ansible-scripts/install-drone-cli.sh"
+    creates: /usr/local/bin/drone
+    chdir: "/tmp/ansible-scripts"
+
+- name: Install script install-aws-cli.sh
+  ansible.builtin.copy:
+    src: files/install-aws-cli.sh
+    dest: "/tmp/ansible-scripts/install-aws-cli.sh"
+    mode: "0755"
+
+- name: Run install-aws-cli.sh
+  ansible.builtin.command:
+    cmd: "/tmp/ansible-scripts/install-aws-cli.sh"
+    creates: /usr/local/bin/aws
+    chdir: "/tmp/ansible-scripts"
+
+- name: Create munin plugins
+  ansible.builtin.template:
+    src: "servercount-autoscaler.sh.j2"
+    dest: "/etc/munin/plugins/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+    force: false
+  loop:
+    - servercount-autoscaler-aws-x86
+    - servercount-autoscaler-aws-arm
+    - servercount-autoscaler-gce-x86
+    - servercount-autoscaler-gce-arm
+    - servercount-autoscaler-hetzner-x86
+    - servercount-autoscaler-hetzner-arm
+
+- name: Cron job to run servercount
+  ansible.builtin.cron:
+    name: Servercount
+    minute: "*"
+    hour: "*"
+    day: "*"
+    job: "{{ drone_scripts_dir }}/servercountv2.sh "
+    user: "root"

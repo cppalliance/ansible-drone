@@ -1,0 +1,40 @@
+#!/bin/bash
+
+docker run -d \
+  -v /var/lib/autoscaler-arm:/data \
+  -v /opt/drone/scripts/init-aws-arm.yml:/opt/init.yml \
+  -e DRONE_AMAZON_USERDATA_FILE=/opt/init.yml \
+  -e DRONE_POOL_MIN=0 \
+  -e DRONE_POOL_MAX=200 \
+  -e DRONE_POOL_MIN_AGE=2m \
+  -e DRONE_SERVER_PROTO=https \
+  -e DRONE_SERVER_HOST={{ drone_server_host }} \
+  -e DRONE_SERVER_TOKEN={{ drone_autoscaler_server_token }} \
+  -e DRONE_AGENT_TOKEN={{ drone_rpc_secret }} \
+  -e DRONE_AMAZON_REGION={{ drone_autoscaler_amazon_region }} \
+  -e DRONE_AMAZON_SUBNET_ID={{ drone_autoscaler_amazon_subnet_id }} \
+  -e DRONE_AMAZON_SECURITY_GROUP={{ drone_autoscaler_amazon_security_group }} \
+  -e DRONE_AMAZON_IMAGE={{ drone_autoscaler_arm_amazon_image }} \
+  -e DRONE_AGENT_ARCH=arm64 \
+  -e DRONE_INTERVAL=1m \
+  -e AWS_ACCESS_KEY_ID={{ drone_autoscaler_aws_access_key_id }} \
+  -e AWS_SECRET_ACCESS_KEY={{ drone_autoscaler_aws_secret_access_key }} \
+  -e DRONE_CAPACITY_BUFFER=0 \
+  -e DRONE_REAPER_INTERVAL=5m \
+  -e DRONE_REAPER_ENABLED=true \
+  -e DRONE_ENABLE_REAPER=true \
+  -e DRONE_AGENT_CONCURRENCY=1 \
+  -e DRONE_AMAZON_INSTANCE={{ drone_autoscaler_arm_amazon_instance }} \
+  -e DRONE_AMAZON_VOLUME_TYPE={{ drone_autoscaler_amazon_volume_type }} \
+  -e DRONE_AMAZON_VOLUME_SIZE={{ drone_autoscaler_amazon_volume_size }} \
+  -p 8081:8080 \
+  --restart=unless-stopped \
+  --name=autoscaler-aws-arm \
+  drone/autoscaler:latest
+
+#  -e DRONE_TLS_AUTOSCERT=true \
+#  -e DRONE_HTTP_HOST=droneautoscaler.cpp.al \
+#  -e DRONE_HTTP_PROTO=https \
+#  -e DRONE_AMAZON_SSHKEY=drone-runner \
+#  -e DRONE_LOGS_DEBUG=true \
+#

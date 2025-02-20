@@ -1,0 +1,6 @@
+---
+- name: Include server
+  ansible.builtin.import_tasks: server.yml
+
+- name: Include database
+  ansible.builtin.import_tasks: database.yml
