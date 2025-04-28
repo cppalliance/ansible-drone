@@ -8,13 +8,29 @@
     state: started
     enabled: true
 
-- name: Configure postgresql.conf
+- name: Configure postgresql.conf listen_addresses
   ansible.builtin.lineinfile:
     dest: "{{ drone_postgresql_config_dir }}/main/postgresql.conf"
     line: "listen_addresses = '*'"
     mode: '0755'
     state: present
     create: true
+  notify:
+    - Restart postgresql
+
+- name: Set postgresql.conf max_connections
+  ansible.builtin.lineinfile:
+    path: "{{ drone_postgresql_config_dir }}/main/postgresql.conf"
+    regexp: '^max_connections ='
+    line: "max_connections = {{ drone_postgresql_max_connections }}"
+  notify:
+    - Restart postgresql
+
+- name: Set postgresql.conf shared_buffers
+  ansible.builtin.lineinfile:
+    path: "{{ drone_postgresql_config_dir }}/main/postgresql.conf"
+    regexp: '^shared_buffers ='
+    line: "shared_buffers = {{ drone_postgresql_shared_buffers }}"
   notify:
     - Restart postgresql
 

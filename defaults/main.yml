@@ -7,6 +7,8 @@ drone_user_password: to_set
 
 drone_postgresql_version: 16
 drone_postgresql_config_dir: "/etc/postgresql/{{ drone_postgresql_version }}"
+drone_postgresql_max_connections: 400
+drone_postgresql_shared_buffers: "500MB"
 
 drone_postgresql_backups_upload_to_bucket: !!str "yes"
 drone_postgresql_backups_bucket: to_set
