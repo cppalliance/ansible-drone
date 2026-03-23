@@ -63,7 +63,7 @@
 - name: Configure pg_hba 1
   ansible.builtin.lineinfile:
     dest: "{{ drone_postgresql_config_dir }}/main/pg_hba.conf"
-    line: "host    all             all             0.0.0.0/0               md5"
+    line: "host    all             all             0.0.0.0/0               scram-sha-256"
     mode: '0755'
     state: present
     create: true
@@ -73,7 +73,7 @@
 - name: Configure pg_hba 2
   ansible.builtin.lineinfile:
     dest: "{{ drone_postgresql_config_dir }}/main/pg_hba.conf"
-    line: "host    all             all             ::/0                    md5"
+    line: "host    all             all             ::/0                    scram-sha-256"
     mode: '0755'
     state: present
     create: true
